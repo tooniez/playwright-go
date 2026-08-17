@@ -4,9 +4,16 @@ on:
     branches: [ main, roll/* ]
   pull_request:
     branches: [ main, roll/* ]
+# On pull_request the group is the PR number, so a new push cancels the running
+# check. On push there is no PR number, so the group falls back to the run id --
+# unique per run, meaning every push gets a group of one and cancel-in-progress
+# has nothing to act on. Do NOT key pushes on github.ref: that puts every commit
+# to main in one group, and since GitHub keeps only one *pending* run per group,
+# each new commit cancels the previously-pending one and intermediate commits
+# never get built.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 jobs:
   lint:
     name: Lint
